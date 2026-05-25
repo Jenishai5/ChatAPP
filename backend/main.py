@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from supabase import Client, create_client
+from supabase import create_client
 
 load_dotenv()
 
@@ -39,7 +39,7 @@ manager = ConnectionManager()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.db: Client = create_client(
+    app.state.db = create_client(
         os.environ["SUPABASE_URL"],
         os.environ["SUPABASE_KEY"],
     )
@@ -91,10 +91,25 @@ async def post_message(body: MessageIn):
 
 @app.post("/api/messages/{message_id}/react")
 async def react_to_message(message_id: str, body: ReactionIn):
-    result = app.state.db.rpc(
-        "react_to_message",
-        {"msg_id": message_id, "reaction": body.type},
-    ).execute()
+    current = (
+        app.state.db.table("messages")
+        .select("likes, dislikes")
+        .eq("id", message_id)
+        .single()
+        .execute()
+    )
+    data = current.data
+    update = (
+        {"likes": data["likes"] + 1}
+        if body.type == "like"
+        else {"dislikes": data["dislikes"] + 1}
+    )
+    result = (
+        app.state.db.table("messages")
+        .update(update)
+        .eq("id", message_id)
+        .execute()
+    )
     updated = result.data[0]
     await manager.broadcast({
         "type": "reaction_update",
