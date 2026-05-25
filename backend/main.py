@@ -1,6 +1,7 @@
 import json
 import os
 from contextlib import asynccontextmanager
+from typing import Literal
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -60,6 +61,10 @@ class MessageIn(BaseModel):
     content: str
 
 
+class ReactionIn(BaseModel):
+    type: Literal["like", "dislike"]
+
+
 @app.get("/api/messages")
 async def get_messages():
     result = (
@@ -80,8 +85,24 @@ async def post_message(body: MessageIn):
         .execute()
     )
     row = result.data[0]
-    await manager.broadcast(row)
+    await manager.broadcast({"type": "new_message", **row})
     return row
+
+
+@app.post("/api/messages/{message_id}/react")
+async def react_to_message(message_id: str, body: ReactionIn):
+    result = app.state.db.rpc(
+        "react_to_message",
+        {"msg_id": message_id, "reaction": body.type},
+    ).execute()
+    updated = result.data[0]
+    await manager.broadcast({
+        "type": "reaction_update",
+        "id": message_id,
+        "likes": updated["likes"],
+        "dislikes": updated["dislikes"],
+    })
+    return updated
 
 
 @app.websocket("/ws")

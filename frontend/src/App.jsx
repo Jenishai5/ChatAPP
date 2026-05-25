@@ -51,18 +51,25 @@ function UsernameModal({ onSubmit }) {
   );
 }
 
-function Message({ msg, currentUser }) {
-  const isOwn = msg.username === currentUser;
+function Message({ msg, onReact }) {
   return (
-    <div className={`message ${isOwn ? "own" : "other"}`}>
-      {!isOwn && (
+    <div className={`message ${msg._own ? "own" : "other"}`}>
+      {!msg._own && (
         <span className="msg-username" style={{ color: colorForName(msg.username) }}>
           {msg.username}
         </span>
       )}
-      <div className={`msg-bubble ${isOwn ? "own" : "other"}`}>
+      <div className={`msg-bubble ${msg._own ? "own" : "other"}`}>
         <span className="msg-content">{msg.content}</span>
         <span className="msg-time">{formatTime(msg.created_at)}</span>
+      </div>
+      <div className="reactions">
+        <button className="reaction-btn" onClick={() => onReact(msg.id, "like")}>
+          👍{msg.likes > 0 && <span className="reaction-count">{msg.likes}</span>}
+        </button>
+        <button className="reaction-btn" onClick={() => onReact(msg.id, "dislike")}>
+          👎{msg.dislikes > 0 && <span className="reaction-count">{msg.dislikes}</span>}
+        </button>
       </div>
     </div>
   );
@@ -83,7 +90,7 @@ export default function App() {
 
     fetch("/api/messages")
       .then((r) => r.json())
-      .then(setMessages)
+      .then((rows) => setMessages(rows.map((m) => ({ ...m, _own: m.username === username }))))
       .catch(console.error);
 
     const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -93,8 +100,18 @@ export default function App() {
     ws.onopen = () => setConnected(true);
     ws.onclose = () => setConnected(false);
     ws.onmessage = (e) => {
-      const msg = JSON.parse(e.data);
-      setMessages((prev) => [...prev, msg]);
+      const event = JSON.parse(e.data);
+
+      if (event.type === "new_message") {
+        const { type, ...msg } = event;
+        setMessages((prev) => [...prev, { ...msg, _own: msg.username === username }]);
+      } else if (event.type === "reaction_update") {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === event.id ? { ...m, likes: event.likes, dislikes: event.dislikes } : m
+          )
+        );
+      }
     };
 
     return () => ws.close();
@@ -130,6 +147,14 @@ export default function App() {
     }
   }
 
+  async function handleReact(messageId, type) {
+    await fetch(`/api/messages/${messageId}/react`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type }),
+    });
+  }
+
   if (!username) return <UsernameModal onSubmit={handleSetUsername} />;
 
   return (
@@ -163,7 +188,7 @@ export default function App() {
           <div className="empty-state">No messages yet. Say hello! 👋</div>
         )}
         {messages.map((msg) => (
-          <Message key={msg.id} msg={msg} currentUser={username} />
+          <Message key={msg.id} msg={msg} onReact={handleReact} />
         ))}
         <div ref={bottomRef} />
       </main>

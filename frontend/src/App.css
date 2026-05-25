@@ -220,6 +220,38 @@ body {
 .modal-btn:hover:not(:disabled) { opacity: .88; }
 .modal-btn:disabled { opacity: .4; cursor: default; }
 
+/* Reactions */
+.reactions {
+  display: flex;
+  gap: 4px;
+  margin-top: 3px;
+  padding: 0 4px;
+}
+.message.own   .reactions { justify-content: flex-end; }
+.message.other .reactions { justify-content: flex-start; }
+
+.reaction-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  color: #555;
+  transition: background .15s, border-color .15s;
+  line-height: 1.6;
+}
+.reaction-btn:hover { background: #f0f0f0; border-color: #bbb; }
+
+.reaction-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: #333;
+}
+
 /* Scrollbar */
 .messages-area::-webkit-scrollbar { width: 4px; }
 .messages-area::-webkit-scrollbar-track { background: transparent; }
