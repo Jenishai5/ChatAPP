@@ -5,6 +5,8 @@ services:
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
     restart: unless-stopped
+    networks:
+      - coolify
 
   frontend:
     build: ./frontend
@@ -13,3 +15,14 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+    networks:
+      - coolify
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.${COOLIFY_RESOURCE_UUID}.rule=Host(`${COOLIFY_FQDN}`)
+      - traefik.http.routers.${COOLIFY_RESOURCE_UUID}.entrypoints=http,https
+      - traefik.http.services.${COOLIFY_RESOURCE_UUID}.loadbalancer.server.port=80
+
+networks:
+  coolify:
+    external: true
