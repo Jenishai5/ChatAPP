@@ -2,8 +2,9 @@ services:
   backend:
     build: ./backend
     environment:
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_KEY=${SUPABASE_KEY}
+      - SUPABASE_URL=${https://afenpnmiurfnxuwsbfqx.supabase.co}
+      - SUPABASE_KEY=${eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmZW5wbm1pdXJmbnh1d3NiZnF4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTcyODgwNywiZXhwIjoyMDk1MzA0ODA3fQ.y1gpm4-ObKGQN7V7ooBkNHgncI9SXmnKYrZLpvpR5u8
+}
     restart: unless-stopped
 
   frontend:
